@@ -132,4 +132,6 @@ int main(int argc, char** argv)
         fprintf(stderr, "DEL failed\n");
         exit(-2);
     }
+
+    printf("Publish result: %d\n", Redis_PUBLISH(rConn, TEST_KEY_NAME, "Pub/sub is the bee's knees!"));
 }

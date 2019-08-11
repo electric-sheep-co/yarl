@@ -106,7 +106,7 @@ char *RedisObject_RESP_array(RedisObject_t obj)
     size_t arrLenStrLen;
     char *arrLenStr = _RedisObject_RESP__intAsStringWithLength(rArr->count, &arrLenStrLen);
 
-    size_t emitStrLen = sizeof(obj.type) + constRESPsTotalLen + arrLenStrLen + strlen(CRLF);
+    size_t emitStrLen = sizeof(obj.type) + constRESPsTotalLen + arrLenStrLen + strlen(CRLF) + 1;
     char *emitStr = _RedisObject_RESP__allocWithLen(obj, emitStrLen);
     char *copyPtr = emitStr + 1;
 

@@ -7,13 +7,15 @@
 #include <stdarg.h>
 #include <assert.h>
 
-// optional arguments must be of type void*
+// optional arguments must all be of type void* (well, really just any pointer type will do)
+// ownershipBitMask allows marking which of the optional arguments is owned: the index for which the argument is passed is
+// checked against that bit in ownershipBitMask, and if set is marked as "owned" by us
 RedisObject_t _RedisCommand_issue(RedisConnection_t conn, const char* cmd, uint32_t argCount, uint32_t ownershipBitMask, ...)
 {
     assert(cmd);
 
-    argCount += 1;
-    RedisArray_t* cmdArr = RedisArray_init(argCount);
+    // 'argCount + 1' to account for the cmd object that must always be included
+    RedisArray_t* cmdArr = RedisArray_init(argCount + 1);
     RedisObject_t cmdObj = {
         .type = RedisObjectType_Array,
         .obj = (void *)cmdArr,
@@ -26,11 +28,11 @@ RedisObject_t _RedisCommand_issue(RedisConnection_t conn, const char* cmd, uint3
 
     cmdArr->objects[0] = cmdNameObj;
 
-    if (argCount > 0)
+    if (argCount)
     {
         va_list args;
         va_start(args, ownershipBitMask);
-        for (int i = 1; i < (argCount); i++)
+        for (int i = 0; i < argCount; i++)
         {
             RedisObject_t argObj = {
                 .type = RedisObjectType_BulkString,
@@ -38,7 +40,7 @@ RedisObject_t _RedisCommand_issue(RedisConnection_t conn, const char* cmd, uint3
                 .objIsOwned = (bool)(ownershipBitMask & (uint32_t)(1 << i))
             };
 
-            cmdArr->objects[i] = argObj;
+            cmdArr->objects[i + 1] = argObj;
         }
         va_end(args);
     }
@@ -102,4 +104,9 @@ bool Redis_EXISTS(RedisConnection_t conn, const char *key)
 int Redis_APPEND(RedisConnection_t conn, const char *key, const char *value)
 {
     REDIS_CMD__EXPECT_INT(conn, "APPEND", 2, 0, key, value);
+}
+
+int Redis_PUBLISH(RedisConnection_t conn, const char* channel, const char* message)
+{
+    REDIS_CMD__EXPECT_INT(conn, "PUBLISH", 2, 0, channel, message);
 }

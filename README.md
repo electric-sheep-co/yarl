@@ -12,11 +12,14 @@ would do nicely on the simple MCU platforms to be targetted.
 
 To that end, `RedisConnection_t` is `typedef`ed simply to `int`, a.k.a. a
 file descriptor. It could be a socket FD, a pipe FD, even an actual file descriptor
-if you're so inclined. Anything that can be `read(2)` from and `write(2)`en to. BYOFD!
+if you're so inclined. Anything that can be [`read(2)`](http://man7.org/linux/man-pages/man2/read.2.html) 
+from and [`write(2)`](http://man7.org/linux/man-pages/man2/write.2.html)-en to. BYOFD!
 
 ## Building
 
 The test app:
 ```
-clang -o sphere  -Wall -Werror -I./src -O0 -g ./src/*.c ./test/test.c
+clang -o yarl_test  -Wall -Werror -I./src -O0 -g ./src/*.c ./test/test.c
 ```
+
+(add `-DDEBUG=1` to generate debugging logging)
