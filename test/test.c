@@ -75,6 +75,8 @@ RedisConnection_t RedisConnect(const char *host, const char *port)
     return (RedisConnection_t)sockfd;
 }
 
+#define TEST_KEY_NAME	"YarlSaysHi"
+
 int main(int argc, char** argv)
 {
     if (argc < 3)
@@ -95,24 +97,39 @@ int main(int argc, char** argv)
         exit(rConn);
     }
 
-    if (pass)
+    if (pass && !Redis_AUTH(rConn, pass))
     {
-        RedisReturnValue authRet = Redis_AUTH(rConn, pass);
-
-        if (authRet != RedisSuccess)
-        {
-            fprintf(stderr, "AUTH failed: %d\n", authRet);
-            exit(authRet);
-        }
+        fprintf(stderr, "AUTH failed\n");
+        exit(-1);
     }
-    
-	if (!Redis_SET(rConn, "FromTheSphere", "Hello, World!"))
-	{
-		fprintf(stderr, "SET failed\n");
-		exit(-2);
-	}
 
-	char* getVal = Redis_GET(rConn, "FromTheSphere");
-	printf("Hello, World? %s\n", getVal);
-	free(getVal);
+    bool exists = Redis_EXISTS(rConn, TEST_KEY_NAME);
+    printf("Exists already? %d\n", exists);
+
+    if (exists && !Redis_DEL(rConn, TEST_KEY_NAME))
+    {
+        fprintf(stderr, "DEL failed\n");
+        exit(-2);
+    }
+
+    if (!Redis_SET(rConn, TEST_KEY_NAME, "Hello, World!"))
+    {
+        fprintf(stderr, "SET failed\n");
+        exit(-2);
+    }
+
+    char* getVal = Redis_GET(rConn, TEST_KEY_NAME);
+    printf("Hello, World? %s\n", getVal);
+    free(getVal);
+
+    int appended = Redis_APPEND(rConn, TEST_KEY_NAME, " It's a beautiful day!");
+    getVal = Redis_GET(rConn, TEST_KEY_NAME);
+    printf("Appended %d bytes, now have '%s'\n", appended, getVal);
+    free(getVal);
+
+    if (!Redis_DEL(rConn, TEST_KEY_NAME))
+    {
+        fprintf(stderr, "DEL failed\n");
+        exit(-2);
+    }
 }

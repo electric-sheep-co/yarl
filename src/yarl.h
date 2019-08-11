@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#define YARL_VERSION "0.1.0"
+
 #include "commands.h"
 
 #ifdef __cplusplus

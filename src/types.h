@@ -7,13 +7,6 @@
 typedef int RedisConnection_t;
 typedef char RedisObjectType_t;
 
-typedef enum RedisReturnValue
-{
-    RedisSuccess = 0,
-    RedisNotConnectedFailure = 1,
-    RedisAuthFailure = 2,
-} RedisReturnValue;
-
 typedef struct RedisObject_t
 {
     RedisObjectType_t type;

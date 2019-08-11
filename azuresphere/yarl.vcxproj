@@ -25,6 +25,7 @@
     <ClCompile Include="..\src\connection.c" />
     <ClCompile Include="..\src\object.c" />
     <ClCompile Include="..\src\resp.c" />
+    <ClCompile Include="..\test\test.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6e98c738-2f73-41b2-a0fe-79b0588fa810}</ProjectGuid>

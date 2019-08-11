@@ -14,7 +14,7 @@ RedisObject_t RedisObject_parseSimpleString(RedisConnection_t conn)
     RedisObject_t rObj = {
         .type = RedisObjectType_SimpleString,
         .obj = NULL,
-        .objIsOwned = true};
+        .objIsOwned = true };
 
     char *readBuf = NULL;
     size_t readOffset = 0;
@@ -44,7 +44,7 @@ RedisObject_t RedisObject_parseBulkString(RedisConnection_t conn)
     RedisObject_t rObj = {
         .type = RedisObjectType_BulkString,
         .obj = NULL,
-        .objIsOwned = true};
+        .objIsOwned = true };
 
     RedisObject_t lenObj = RedisObject_parseInteger(conn);
     assert(lenObj.obj);
@@ -71,6 +71,7 @@ RedisObject_t RedisObject_parseInteger(RedisConnection_t conn)
 
     rObj.type = RedisObjectType_Integer;
     rObj.obj = (void *)malloc(sizeof(int));
+    rObj.objIsOwned = true;
     memcpy(rObj.obj, &convNum, sizeof(int));
 
     return rObj;
@@ -81,7 +82,7 @@ RedisObject_t RedisObject_parseArray(RedisConnection_t conn)
     RedisObject_t rObj = {
         .type = RedisObjectType_Array,
         .obj = NULL,
-        .objIsOwned = true};
+        .objIsOwned = true };
 
     RedisObject_t lenObj = RedisObject_parseInteger(conn);
     assert(lenObj.obj);

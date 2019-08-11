@@ -9,3 +9,14 @@ Some day, that library will consume this one & morph into just a nice C++ facade
 
 Additionally, I felt a simple, "bring your own file descriptor" interface 
 would do nicely on the simple MCU platforms to be targetted.
+
+To that end, `RedisConnection_t` is `typedef`ed simply to `int`, a.k.a. a
+file descriptor. It could be a socket FD, a pipe FD, even an actual file descriptor
+if you're so inclined. Anything that can be `read(2)` from and `write(2)`en to. BYOFD!
+
+## Building
+
+The test app:
+```
+clang -o sphere  -Wall -Werror -I./src -O0 -g ./src/*.c ./test/test.c
+```

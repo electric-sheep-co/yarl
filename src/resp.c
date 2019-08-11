@@ -98,7 +98,7 @@ char *RedisObject_RESP_array(RedisObject_t obj)
         char *tRESP = RedisRESP_generate(rArr->objects[i]);
         _RedisObject_RESP_array__coll_t tCol = {
             .RESP = tRESP,
-            .length = strlen(tRESP)};
+            .length = strlen(tRESP) };
         constRESPs[i] = tCol;
         constRESPsTotalLen += tCol.length;
     }
@@ -137,7 +137,7 @@ static RedisObjectRESPTypeMap_t RedisObject_RESP_map[] = {
     {RedisObjectType_Integer, RedisObject_RESP_simpleString},
     {RedisObjectType_Array, RedisObject_RESP_array},
     {RedisObjectType_Error, RedisObject_RESP_simpleString},
-    {RedisObjectType_InternalError, NULL}};
+    {RedisObjectType_InternalError, NULL} };
 
 char *RedisRESP_generate(RedisObject_t obj)
 {
