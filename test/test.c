@@ -75,9 +75,9 @@ RedisConnection_t RedisConnect(const char *host, const char *port)
     return (RedisConnection_t)sockfd;
 }
 
-#define TEST_KEY_NAME	"YarlSaysHi"
+#define TEST_KEY_NAME "YarlSaysHi"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     if (argc < 3)
     {
@@ -85,9 +85,9 @@ int main(int argc, char** argv)
         exit(-1);
     }
 
-    const char* host = argv[1];
-    const char* port = argv[2];
-    const char* pass = argc > 3 ? argv[3] : NULL;
+    const char *host = argv[1];
+    const char *port = argv[2];
+    const char *pass = argc > 3 ? argv[3] : NULL;
 
     RedisConnection_t rConn = RedisConnect(host, port);
 
@@ -118,7 +118,7 @@ int main(int argc, char** argv)
         exit(-2);
     }
 
-    char* getVal = Redis_GET(rConn, TEST_KEY_NAME);
+    char *getVal = Redis_GET(rConn, TEST_KEY_NAME);
     printf("Hello, World? %s\n", getVal);
     free(getVal);
 
@@ -134,4 +134,26 @@ int main(int argc, char** argv)
     }
 
     printf("Publish result: %d\n", Redis_PUBLISH(rConn, TEST_KEY_NAME, "Pub/sub is the bee's knees!"));
+
+    RedisArray_t *allKeys = Redis_KEYS(rConn, "*");
+
+    if (allKeys)
+    {
+        printf("Found %lu keys:\n", allKeys->count);
+        for (int i = 0; i < allKeys->count; i++)
+            printf("\t%s\n", (char *)allKeys->objects[i].obj);
+        RedisArray_dealloc(allKeys);
+    }
+    else
+    {
+        fprintf(stderr, "KEYS failed\n");
+        exit(-1);
+    }
+
+    if (!Redis_SET(rConn, TEST_KEY_NAME "ButWillExpireInSixty", "60...") ||
+        !Redis_EXPIRE(rConn, TEST_KEY_NAME "ButWillExpireInSixty", 60))
+    {
+        fprintf(stderr, "EXPIRE failed\n");
+        exit(-2);
+    }
 }

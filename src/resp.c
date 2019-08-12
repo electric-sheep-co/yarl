@@ -11,7 +11,9 @@
 
 char *_RedisObject_RESP__allocWithLen(RedisObject_t obj, size_t emitLen)
 {
-    char *emitStr = (char *)malloc(emitLen + 1);
+    // the null terminator (just in case the caller forgot, which does tend to happen)
+    emitLen += 1;
+    char *emitStr = (char *)malloc(emitLen);
     bzero(emitStr, emitLen);
     emitStr[0] = (char)obj.type;
     return emitStr;
@@ -29,7 +31,8 @@ char *_RedisObject_RESP__intAsStringWithLength(size_t num, size_t *outLength)
     if (outLength)
         *outLength = _sslslt;
 
-    char *ret = (char *)malloc(_sslslt);
+    // account for trailing null
+    char *ret = (char *)malloc(++_sslslt);
     memcpy(ret, ssLenStr, _sslslt);
     return ret;
 }
@@ -68,6 +71,7 @@ char *RedisObject_RESP_bulkString(RedisObject_t obj)
 
     memcpy(copyPtr, ssLenStr, ssLenStrLen);
     copyPtr += ssLenStrLen;
+    free(ssLenStr);
     memcpy(copyPtr, CRLF, crlfLen);
     copyPtr += crlfLen;
     memcpy(copyPtr, ss, ssLen);
@@ -98,7 +102,7 @@ char *RedisObject_RESP_array(RedisObject_t obj)
         char *tRESP = RedisRESP_generate(rArr->objects[i]);
         _RedisObject_RESP_array__coll_t tCol = {
             .RESP = tRESP,
-            .length = strlen(tRESP) };
+            .length = strlen(tRESP)};
         constRESPs[i] = tCol;
         constRESPsTotalLen += tCol.length;
     }
@@ -112,6 +116,7 @@ char *RedisObject_RESP_array(RedisObject_t obj)
 
     memcpy(copyPtr, arrLenStr, arrLenStrLen);
     copyPtr += arrLenStrLen;
+    free(arrLenStr);
 
     memcpy(copyPtr, CRLF, strlen(CRLF));
     copyPtr += strlen(CRLF);
@@ -137,7 +142,7 @@ static RedisObjectRESPTypeMap_t RedisObject_RESP_map[] = {
     {RedisObjectType_Integer, RedisObject_RESP_simpleString},
     {RedisObjectType_Array, RedisObject_RESP_array},
     {RedisObjectType_Error, RedisObject_RESP_simpleString},
-    {RedisObjectType_InternalError, NULL} };
+    {RedisObjectType_InternalError, NULL}};
 
 char *RedisRESP_generate(RedisObject_t obj)
 {

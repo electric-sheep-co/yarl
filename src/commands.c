@@ -1,6 +1,8 @@
 #include "commands.h"
 #include "connection.h"
 #include "object.h"
+#include "resp.h"
+#include "log.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -10,21 +12,22 @@
 // optional arguments must all be of type void* (well, really just any pointer type will do)
 // ownershipBitMask allows marking which of the optional arguments is owned: the index for which the argument is passed is
 // checked against that bit in ownershipBitMask, and if set is marked as "owned" by us
-RedisObject_t _RedisCommand_issue(RedisConnection_t conn, const char* cmd, uint32_t argCount, uint32_t ownershipBitMask, ...)
+RedisObject_t _RedisCommand_issue(RedisConnection_t, const char *, uint32_t, uint32_t, ...);
+RedisObject_t _RedisCommand_issue(RedisConnection_t conn, const char *cmd, uint32_t argCount, uint32_t ownershipBitMask, ...)
 {
     assert(cmd);
 
     // 'argCount + 1' to account for the cmd object that must always be included
-    RedisArray_t* cmdArr = RedisArray_init(argCount + 1);
+    RedisArray_t *cmdArr = RedisArray_init(argCount + 1);
     RedisObject_t cmdObj = {
         .type = RedisObjectType_Array,
         .obj = (void *)cmdArr,
-        .objIsOwned = true };
+        .objIsOwned = true};
 
     RedisObject_t cmdNameObj = {
         .type = RedisObjectType_BulkString,
         .obj = (void *)cmd,
-        .objIsOwned = false };
+        .objIsOwned = false};
 
     cmdArr->objects[0] = cmdNameObj;
 
@@ -36,9 +39,8 @@ RedisObject_t _RedisCommand_issue(RedisConnection_t conn, const char* cmd, uint3
         {
             RedisObject_t argObj = {
                 .type = RedisObjectType_BulkString,
-                .obj = (void*)va_arg(args, void*),
-                .objIsOwned = (bool)(ownershipBitMask & (uint32_t)(1 << i))
-            };
+                .obj = (void *)va_arg(args, void *),
+                .objIsOwned = (bool)(ownershipBitMask & (uint32_t)(1 << i))};
 
             cmdArr->objects[i + 1] = argObj;
         }
@@ -49,64 +51,99 @@ RedisObject_t _RedisCommand_issue(RedisConnection_t conn, const char* cmd, uint3
     RedisObject_dealloc(cmdObj);
     return cmdResult;
 }
+bool _RedisCommandReturn__typeCheck(RedisObject_t, RedisObjectType_t);
+bool _RedisCommandReturn__typeCheck(RedisObject_t cmdRet, RedisObjectType_t expectType)
+{
+    return cmdRet.type != RedisObjectType_InternalError && cmdRet.type == expectType && cmdRet.obj;
+}
 
-#define REDIS_CMD__GENERIC__PREDEALLOC(conn, cmd, count, bm, endCond, failReturn, preDealloc, deallocBeforeReturn, ...) \
-	RedisObject_t cmdRet = _RedisCommand_issue(conn, cmd, count, bm, ##__VA_ARGS__); \
-	if (cmdRet.type == RedisObjectType_InternalError || !cmdRet.obj) return failReturn; \
-	preDealloc; \
-	if (deallocBeforeReturn) RedisObject_dealloc(cmdRet); \
-	return endCond;
+#define REDIS_CMD__GENERIC(expectType, conn, cmd, count, bm, successReturn, failReturn, dealloc, ...) \
+    RedisObject_t cmdRet = _RedisCommand_issue(conn, cmd, count, bm, ##__VA_ARGS__);                  \
+                                                                                                      \
+    if (dealloc)                                                                                      \
+        RedisObject_dealloc(cmdRet);                                                                  \
+                                                                                                      \
+    return _RedisCommandReturn__typeCheck(cmdRet, expectType) ? successReturn : failReturn;
 
-#define REDIS_CMD__GENERIC(conn, cmd, count, bm, endCond, failReturn, deallocBeforeReturn, ...) \
-	RedisObject_t cmdRet = _RedisCommand_issue(conn, cmd, count, bm, ##__VA_ARGS__); \
-	if (cmdRet.type == RedisObjectType_InternalError || !cmdRet.obj) return failReturn; \
-	if (deallocBeforeReturn) RedisObject_dealloc(cmdRet); \
-	return endCond;
+#define _RedisCommandReturn_(name, retType, exType, failReturn, dealloc, extractSt) \
+    retType _RedisCommandReturn_##name(RedisObject_t);                              \
+    retType _RedisCommandReturn_##name(RedisObject_t cmdRet)                        \
+    {                                                                               \
+        if (!_RedisCommandReturn__typeCheck(cmdRet, exType))                        \
+        {                                                                           \
+            RedisLog("_RedisCommandReturn__typeCheck failed: %d\n", exType);        \
+            return failReturn;                                                      \
+        }                                                                           \
+                                                                                    \
+        retType retVal = extractSt;                                                 \
+                                                                                    \
+        if (dealloc)                                                                \
+            RedisObject_dealloc(cmdRet);                                            \
+                                                                                    \
+        return retVal;                                                              \
+    }
 
-#define REDIS_CMD__EXPECT_OK(conn, cmd, count, bm, ...) \
-	REDIS_CMD__GENERIC__PREDEALLOC(conn, cmd, count, bm, boolVal, false, \
-		bool boolVal = cmdRet.type == RedisObjectType_SimpleString && cmdRet.obj && \
-			strncmp((const char *)cmdRet.obj, "OK", strlen("OK")) == 0, true, ##__VA_ARGS__)
+_RedisCommandReturn_(extractBool, bool, RedisObjectType_Integer, false, true, (bool)*(int *)cmdRet.obj);
 
-#define REDIS_CMD__EXPECT_BOOL(conn, cmd, count, bm, ...) \
-	REDIS_CMD__GENERIC__PREDEALLOC(conn, cmd, count, bm, boolVal, false, \
-		bool boolVal = cmdRet.type == RedisObjectType_Integer && (bool)*(int*)cmdRet.obj, true, ##__VA_ARGS__)
+_RedisCommandReturn_(extractInt, int, RedisObjectType_Integer, -1, true, *(int *)cmdRet.obj);
 
-#define REDIS_CMD__EXPECT_INT(conn, cmd, count, bm, ...) \
-	REDIS_CMD__GENERIC__PREDEALLOC(conn, cmd, count, bm, intVal, -1, \
-		int intVal = *(int*)cmdRet.obj, true, ##__VA_ARGS__)
+_RedisCommandReturn_(isOKString, bool, RedisObjectType_SimpleString, false, true,
+                     strncmp((const char *)cmdRet.obj, "OK", strlen("OK")) == 0);
 
 bool Redis_AUTH(RedisConnection_t conn, const char *password)
 {
-    REDIS_CMD__EXPECT_OK(conn, "AUTH", 1, 0, password);
+    return _RedisCommandReturn_isOKString(_RedisCommand_issue(conn, "AUTH", 1, 0, password));
 }
 
 char *Redis_GET(RedisConnection_t conn, const char *key)
 {
-    REDIS_CMD__GENERIC(conn, "GET", 1, 0, (char*)cmdRet.obj, NULL, false, key);
+    REDIS_CMD__GENERIC(RedisObjectType_BulkString, conn, "GET", 1, 0, (char *)cmdRet.obj, NULL, false, key);
 }
 
 bool Redis_SET(RedisConnection_t conn, const char *key, const char *value)
 {
-    REDIS_CMD__EXPECT_OK(conn, "SET", 2, 0, key, value);
+    return _RedisCommandReturn_isOKString(_RedisCommand_issue(conn, "SET", 2, 0, key, value));
 }
 
 bool Redis_DEL(RedisConnection_t conn, const char *key)
 {
-    REDIS_CMD__EXPECT_BOOL(conn, "DEL", 1, 0, key);
+    return _RedisCommandReturn_extractBool(_RedisCommand_issue(conn, "DEL", 1, 0, key));
 }
 
 bool Redis_EXISTS(RedisConnection_t conn, const char *key)
 {
-    REDIS_CMD__EXPECT_BOOL(conn, "EXISTS", 1, 0, key);
+    return _RedisCommandReturn_extractBool(_RedisCommand_issue(conn, "EXISTS", 1, 0, key));
 }
 
 int Redis_APPEND(RedisConnection_t conn, const char *key, const char *value)
 {
-    REDIS_CMD__EXPECT_INT(conn, "APPEND", 2, 0, key, value);
+    return _RedisCommandReturn_extractInt(_RedisCommand_issue(conn, "APPEND", 2, 0, key, value));
 }
 
-int Redis_PUBLISH(RedisConnection_t conn, const char* channel, const char* message)
+int Redis_PUBLISH(RedisConnection_t conn, const char *channel, const char *message)
 {
-    REDIS_CMD__EXPECT_INT(conn, "PUBLISH", 2, 0, channel, message);
+    return _RedisCommandReturn_extractInt(_RedisCommand_issue(conn, "PUBLISH", 2, 0, channel, message));
+}
+
+RedisArray_t *Redis_KEYS(RedisConnection_t conn, const char *pattern)
+{
+    REDIS_CMD__GENERIC(RedisObjectType_Array, conn, "KEYS", 1, 0, (RedisArray_t *)cmdRet.obj, NULL, false, pattern);
+}
+
+bool _Redis_EXPIRE_generic(RedisConnection_t conn, const char *cmd, const char *key, int num)
+{
+    char *numStr = _RedisObject_RESP__intAsStringWithLength(num, NULL);
+    bool retVal = _RedisCommandReturn_extractBool(_RedisCommand_issue(conn, cmd, 2, 0, key, numStr));
+    free(numStr);
+    return retVal;
+}
+
+bool Redis_EXPIRE(RedisConnection_t conn, const char *key, int seconds)
+{
+    return _Redis_EXPIRE_generic(conn, "EXPIRE", key, seconds);
+}
+
+bool Redis_EXPIREAT(RedisConnection_t conn, const char *key, int timestamp)
+{
+    return _Redis_EXPIRE_generic(conn, "EXPIREAT", key, timestamp);
 }

@@ -5,9 +5,12 @@
 extern "C" {
 #endif
 
-#define YARL_VERSION "0.1.1"
+#define YARL_VERSION "0.2.0"
+#define YARL_VERSION_NUMERIC 020
 
 #include "commands.h"
+
+extern void RedisArray_dealloc(RedisArray_t *);
 
 #ifdef __cplusplus
 }

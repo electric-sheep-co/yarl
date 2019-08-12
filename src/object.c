@@ -91,8 +91,7 @@ RedisObject_t RedisObject_parseArray(RedisConnection_t conn)
     RedisObject_dealloc(lenObj);
     assert(len >= 0);
 
-    RedisArray_t *retArr = (RedisArray_t *)malloc(sizeof(RedisArray_t));
-    retArr->count = (size_t)len;
+    RedisArray_t *retArr = RedisArray_init(len);
 
     for (int i = 0; i < len; i++)
         retArr->objects[i] = RedisConnection_getNextObject(conn);
