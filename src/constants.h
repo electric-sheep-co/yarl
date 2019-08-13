@@ -13,4 +13,13 @@
 #define RedisObjectType_Array (RedisObjectType_t)'*'
 #define RedisObjectType_InternalError (RedisObjectType_t)'!'
 
+#define RedisObject_TypeToString(type) \
+    ((type) == RedisObjectType_NoType ? "NoType" : \
+    ((type) == RedisObjectType_SimpleString ? "SimpleString" : \
+    ((type) == RedisObjectType_Error ? "Error" : \
+    ((type) == RedisObjectType_Integer ? "Integer" : \
+    ((type) == RedisObjectType_BulkString ? "BulkString" : \
+    ((type) == RedisObjectType_Array ? "Array" : \
+    ((type) == RedisObjectType_InternalError ? "LibInternalError" : "UnknownRedisObjectType")))))))
+
 #endif // __YARL_CONSTANTS__H__

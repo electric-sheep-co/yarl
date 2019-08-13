@@ -5,12 +5,17 @@
 extern "C" {
 #endif
 
-#define YARL_VERSION "0.2.0"
-#define YARL_VERSION_NUMERIC 020
+#define YARL_VERSION "0.3.0"
 
 #include "commands.h"
+#include "constants.h"
 
+// object.h
+extern void RedisObject_dealloc(RedisObject_t);
 extern void RedisArray_dealloc(RedisArray_t *);
+
+// connection.h
+extern RedisObject_t RedisConnection_getNextObject(RedisConnection_t conn);
 
 #ifdef __cplusplus
 }

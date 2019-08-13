@@ -147,3 +147,13 @@ bool Redis_EXPIREAT(RedisConnection_t conn, const char *key, int timestamp)
 {
     return _Redis_EXPIRE_generic(conn, "EXPIREAT", key, timestamp);
 }
+
+void Redis_SUBSCRIBE(RedisConnection_t conn, const char *channel)
+{
+    _RedisCommand_issue(conn, "SUBSCRIBE", 1, 0, channel);
+}
+
+void Redis_PSUBSCRIBE(RedisConnection_t conn, const char *pattern)
+{
+    _RedisCommand_issue(conn, "PSUBSCRIBE", 1, 0, pattern);
+}

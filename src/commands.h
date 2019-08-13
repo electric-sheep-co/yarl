@@ -28,4 +28,8 @@ bool Redis_EXPIRE(RedisConnection_t conn, const char *key, int seconds);
 
 bool Redis_EXPIREAT(RedisConnection_t conn, const char *key, int timestamp);
 
+// use RedisConnection_getNextObject() to get messages
+void Redis_SUBSCRIBE(RedisConnection_t conn, const char *channel);
+void Redis_PSUBSCRIBE(RedisConnection_t conn, const char *pattern);
+
 #endif // __YARL_COMMANDS__H__
