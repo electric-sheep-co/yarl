@@ -31,7 +31,7 @@ RedisObject_t RedisObject_parseSimpleString(RedisConnection_t conn)
         // is this needed? consumes the newline, but doesn't getNextObject do that already?
         if (readBuf[readOffset] != '\n')
             ++readOffset;
-    } while (readBuf[readOffset - 1] != '\r');
+    } while (readOffset == 0 || readBuf[readOffset - 1] != '\r');
 
     readBuf[readOffset - 1] = '\0';
     rObj.obj = realloc(readBuf, readOffset);
@@ -56,7 +56,6 @@ RedisObject_t RedisObject_parseBulkString(RedisConnection_t conn)
     if (len != -1)
     {
         RedisObject_t strObj = RedisObject_parseSimpleString(conn);
-        assert(strObj.obj && len == strlen((char *)strObj.obj));
         rObj.obj = strObj.obj;
     }
 

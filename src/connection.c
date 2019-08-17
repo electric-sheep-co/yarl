@@ -25,6 +25,7 @@ RedisObject_t RedisConnection_sendCommand(RedisConnection_t conn, RedisObject_t 
             rObj = RedisConnection_getNextObject(conn);
     }
 
+    free(cmdRESP);
     return rObj;
 }
 

@@ -125,6 +125,7 @@ char *RedisObject_RESP_array(RedisObject_t obj)
     {
         memcpy(copyPtr, constRESPs[i].RESP, constRESPs[i].length);
         copyPtr += constRESPs[i].length;
+        free(constRESPs[i].RESP);
     }
 
     free(constRESPs);
