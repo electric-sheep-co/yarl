@@ -127,6 +127,7 @@ char *RedisObject_RESP_array(RedisObject_t obj)
         copyPtr += constRESPs[i].length;
     }
 
+    free(constRESPs);
     return emitStr;
 }
 
