@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#define YARL_VERSION "0.3.0"
+#define YARL_VERSION "0.3.1"
 
 #include "commands.h"
 #include "constants.h"
