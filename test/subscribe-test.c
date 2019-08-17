@@ -13,8 +13,11 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include <yarl.h>
+
+static volatile sig_atomic_t running = true;
 
 // adapted from http://beej.us/guide/bgnet/html/multi/clientserver.html#simpleclient
 
@@ -113,7 +116,7 @@ void* subThreadFunc(void* arg)
     assert(arg);
     RedisConnection_t rConn = (RedisConnection_t)arg;
     
-    while (1)
+    while (running)
     {
         RedisObject_t nextObj = RedisConnection_getNextObject(rConn);
         printRedisObject(nextObj);
@@ -123,8 +126,17 @@ void* subThreadFunc(void* arg)
     return NULL;
 }
 
+void sighand(int signal)
+{
+    fprintf(stderr, "SIGNALED %d\n", signal);
+    running = false;
+}
+
 int main(int argc, char **argv)
 {
+    signal(SIGINT, sighand);
+    signal(SIGTERM, sighand);
+
     if (argc < 3)
     {
         fprintf(stderr, "Usage: %s host port password\n\n", argv[0]);
