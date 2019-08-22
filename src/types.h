@@ -20,4 +20,12 @@ typedef struct RedisArray_t
     RedisObject_t *objects;
 } RedisArray_t;
 
+typedef enum 
+{
+    PivotInvalid = -1,
+    PivotBefore,
+    PivotAfter,
+    PivotLastSentinel
+} RedisLINSERTPivot_t;
+
 #endif // __YARL_TYPES__H__

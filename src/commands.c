@@ -4,7 +4,6 @@
 #include "resp.h"
 #include "log.h"
 
-#include <stdint.h>
 #include <string.h>
 #include <stdarg.h>
 #include <assert.h>
@@ -156,4 +155,27 @@ void Redis_SUBSCRIBE(RedisConnection_t conn, const char *channel)
 void Redis_PSUBSCRIBE(RedisConnection_t conn, const char *pattern)
 {
     _RedisCommand_issue(conn, "PSUBSCRIBE", 1, 0, pattern);
+}
+
+int Redis_LPUSHX(RedisConnection_t conn, const char *key, const char* value)
+{
+    return _RedisCommandReturn_extractInt(_RedisCommand_issue(conn, "LPUSHX", 2, 0, key, value));
+}
+
+char* Redis_LPOP(RedisConnection_t conn, const char* key)
+{
+    REDIS_CMD__GENERIC(RedisObjectType_BulkString, conn, "LPOP", 1, 0, (char *)cmdRet.obj, NULL, false, key);
+}
+
+char *Redis_LINDEX(RedisConnection_t conn, const char* key, int index)
+{
+    REDIS_CMD__GENERIC(RedisObjectType_BulkString, conn, "LINDEX", 2, 0x2, 
+        (char *)cmdRet.obj, NULL, false, key, _RedisObject_RESP__intAsStringWithLength(index, NULL));
+}
+
+int Redis_LINSERT(RedisConnection_t conn, const char* key, RedisLINSERTPivot_t pivotPoint, const char* pivot, const char* value)
+{
+    assert(pivotPoint > PivotInvalid && pivotPoint < PivotLastSentinel);
+    const char* pivotStr = pivotPoint == PivotBefore ? "BEFORE" : "AFTER";
+    return _RedisCommandReturn_extractInt(_RedisCommand_issue(conn, "LINSERT", 4, 0, key, pivotStr, pivot, value));
 }

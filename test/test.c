@@ -127,11 +127,7 @@ int main(int argc, char **argv)
     printf("Appended %d bytes, now have '%s'\n", appended, getVal);
     free(getVal);
 
-    if (!Redis_DEL(rConn, TEST_KEY_NAME))
-    {
-        fprintf(stderr, "DEL failed\n");
-        exit(-2);
-    }
+    assert(Redis_DEL(rConn, TEST_KEY_NAME));
 
     printf("Publish result: %d\n", Redis_PUBLISH(rConn, TEST_KEY_NAME, "Pub/sub is the bee's knees!"));
 
@@ -139,9 +135,7 @@ int main(int argc, char **argv)
 
     if (allKeys)
     {
-        printf("Found %lu keys:\n", allKeys->count);
-        for (int i = 0; i < allKeys->count; i++)
-            printf("\t%s\n", (char *)allKeys->objects[i].obj);
+        printf("Found %lu keys\n", allKeys->count);
         RedisArray_dealloc(allKeys);
     }
     else
@@ -150,10 +144,25 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    if (!Redis_SET(rConn, TEST_KEY_NAME "ButWillExpireInSixty", "60...") ||
-        !Redis_EXPIRE(rConn, TEST_KEY_NAME "ButWillExpireInSixty", 60))
-    {
-        fprintf(stderr, "EXPIRE failed\n");
-        exit(-2);
-    }
+    assert(Redis_SET(rConn, TEST_KEY_NAME "ButWillExpireInSixty", "60...") &&
+        Redis_EXPIRE(rConn, TEST_KEY_NAME "ButWillExpireInSixty", 60));
+
+    char* lName = TEST_KEY_NAME "Listicle";
+    assert(Redis_LPUSH(rConn, lName, 3, "foo", "bar", "baz") == 3);
+    assert(Redis_LPUSHX(rConn, lName, "LPUSHX") == 4);
+
+    char* popped = Redis_LPOP(rConn, lName);
+    assert(!strncmp(popped, "LPUSHX", strlen("LPUSHX")));
+    free(popped);
+
+    assert(!Redis_LPUSHX(rConn, TEST_KEY_NAME "DNE", "LPUSHX"));
+
+    char* lidx = Redis_LINDEX(rConn, lName, 2);
+    assert(!strncmp(lidx, "foo", strlen("foo")));
+
+    assert(Redis_LINSERT(rConn, lName, PivotBefore, "bar", "before_bar") == 4 &&
+        Redis_LINSERT(rConn, lName, PivotAfter, "bar", "after_bar") == 5);
+
+    Redis_DEL(rConn, lName);
+    printf("List tests successful.\n");
 }
