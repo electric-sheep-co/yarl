@@ -55,7 +55,9 @@ RedisObject_t RedisConnection_getNextObject(RedisConnection_t conn)
         readBytes = read(conn, &typeChar, sizeof(typeChar));
     } while (readBytes == sizeof(typeChar) && (typeChar == -1 || typeChar == '\r' || typeChar == '\n'));
 
-    assert(readBytes == sizeof(typeChar));
+    // lost connection to server
+    if(readBytes != sizeof(typeChar))
+        return rObj;
 
     RedisObjectTypeMap_t *typeMapWalk = RedisConnection_getNextObject__parseMap;
     for (; typeMapWalk->type != RedisObjectType_InternalError && typeMapWalk->create != NULL; typeMapWalk++)
